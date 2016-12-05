@@ -1,6 +1,7 @@
 <resources>
     <string name="app_name">TestOne</string>
-
     <string name="hello_world">Hello world!</string>
     <string name="action_settings">Settings</string>
+    <string name="label">My Favorite City</string>
+
 </resources>
