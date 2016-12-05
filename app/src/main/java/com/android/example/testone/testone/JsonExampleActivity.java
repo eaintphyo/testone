@@ -17,13 +17,26 @@
 package com.android.example.testone.testone;
 
 import android.app.Activity;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.widget.GridView;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonParser;
+import com.google.gson.stream.JsonReader;
+import com.koushikdutta.async.future.FutureCallback;
+import com.koushikdutta.ion.Ion;
+import com.koushikdutta.ion.Response;
+
 import org.json.JSONObject;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -38,7 +51,7 @@ import io.realm.RealmConfiguration;
 public class JsonExampleActivity extends Activity {
 
     private GridView mGridView;
-    private CityAdapter mAdapter;
+    private TownshipAdapter mAdapter;
     private Realm realm;
     private String apiurl = "http://mmrd.herokuapp.com/api/townships";
 
@@ -58,16 +71,16 @@ public class JsonExampleActivity extends Activity {
 
         // Load from file "cities.json" first time
         if(mAdapter == null) {
-            List<City> cities = null;
+            List<Township> townships = null;
             try {
-                cities = loadCities();
+                townships = loadTownships();
             } catch (IOException e) {
                 e.printStackTrace();
             }
 
             //This is the GridView adapter
-            mAdapter = new CityAdapter(this);
-            mAdapter.setData(cities);
+            mAdapter = new TownshipAdapter(this);
+            mAdapter.setData(townships);
 
             //This is the GridView which will display the list of cities
             mGridView = (GridView) findViewById(R.id.cities_list);
@@ -95,8 +108,8 @@ public class JsonExampleActivity extends Activity {
     public List<Township> loadTownships() throws IOException {
 
         loadJsonUrlFromStream();
-        loadJsonFromJsonObject();
-        loadJsonFromString();
+        //loadJsonFromJsonObject();
+        //loadJsonFromString();
 
         return realm.where(Township.class).findAll();
     }
@@ -124,21 +137,63 @@ public class JsonExampleActivity extends Activity {
     private void loadJsonUrlFromStream() throws IOException {
         // Use streams if you are worried about the size of the JSON whether it was persisted on disk
         // or received from the network.
-        InputStream stream = getAssets().open("cities.json");
 
-        // Open a transaction to store items into the realm
-        realm.beginTransaction();
-        try {
-            realm.createAllFromJson(City.class, stream);
-            realm.commitTransaction();
-        } catch (IOException e) {
-            // Remember to cancel the transaction if anything goes wrong.
-            realm.cancelTransaction();
-        } finally {
-            if (stream != null) {
-                stream.close();
-            }
-        }
+        Ion.with(this)
+                .load(apiurl)
+                .asString()
+                .withResponse()
+                .setCallback(new FutureCallback<Response<String>>() {
+                    @Override public void onCompleted(Exception e, final Response<String> result) {
+                        try {
+                            if (e != null) throw e;
+                            switch (result.getHeaders().getResponseCode()) {
+                                case 200:
+
+                                    InputStream stream =
+                                            new ByteArrayInputStream(result.getResult().getBytes("UTF-8"));
+
+                                    // Open a transaction to store items into the realm
+                                    realm.beginTransaction();
+                                    try {
+                                        realm.createAllFromJson(Township.class, stream);
+                                        realm.commitTransaction();
+                                    } catch (IOException e1) {
+                                        // Remember to cancel the transaction if anything goes wrong.
+                                        realm.cancelTransaction();
+                                    } finally {
+                                        if (stream != null) {
+                                            stream.close();
+                                        }
+                                    }
+                                    /*new AsyncTask<Void, String, Void>() {
+                                        @Override protected Void doInBackground(Void... params) {
+                                            try {
+
+
+
+                                            } catch (IOException e1) {
+                                                e1.printStackTrace();
+                                            }
+                                            return null;
+                                        }
+
+                                        @Override protected void onProgressUpdate(String... values) {
+                                            super.onProgressUpdate(values);
+                                        }
+
+                                        @Override protected void onPostExecute(Void aVoid) {
+                                            super.onPostExecute(aVoid);
+
+                                        }
+                                    }.execute();
+
+                                    break;*/
+                            }
+                        } catch (Exception e1) {
+                            e1.printStackTrace();
+                        }
+                    }
+                });
     }
 
     private void loadJsonFromJsonObject() {

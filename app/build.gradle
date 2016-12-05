@@ -25,4 +25,6 @@ dependencies {
     compile 'com.android.support:appcompat-v7:23.1.1'
     provided 'org.projectlombok:lombok:1.16.6'
     apt 'org.projectlombok:lombok:1.16.6'
+    compile 'com.koushikdutta.ion:ion:1.+'
+    compile 'com.mcxiaoke.volley:library:1.0.6@aar'
 }
